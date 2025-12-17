@@ -179,104 +179,42 @@ class SimulatorServer(SingletonConfigurable):
             writer.close()
             await writer.wait_closed()
 
-
     # ==========================================================
     # [4] 공통 로직: 디코딩 & Trait 업데이트
     # ==========================================================
-    # def _decode_and_update(self, data_bytes):
-    #     nparr = np.frombuffer(data_bytes, np.uint8)
-    #     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-    #     if frame is not None:
-    #         # OpenGL 좌표계 대응 상하반전
-    #         flipped = cv2.flip(frame, 0)
-    #         self.latest_image = flipped
-    #     else:
-    #         print("[System] 이미지 디코딩 실패")
-
-    # [수정된 코드] Raw Data 처리
-    # def _decode_and_update(self, data_bytes):
-    #     # 1. 해상도 설정 (SandboxScene.cpp 설정과 반드시 일치해야 함)
-    #     H, W = 308, 410 
-    #     C = 4  # RGB8 형식이면 3, RGBA8이면 4
-        
-    #     expected_size = W * H * C
-    #     if len(data_bytes) != expected_size:
-    #         print(f"[Error] 데이터 크기 불일치! 예상: {expected_size}, 수신: {len(data_bytes)}")
-    #         return
-
-    #     try:
-    #         # 2. 1차원 바이트 배열을 이미지 형태(H, W, C)로 변환
-    #         frame = np.frombuffer(data_bytes, dtype=np.uint8).reshape((H, W, C))
-            
-    #         # 3. 색상 보정 (OpenGL Raw Data는 보통 RGB 순서, OpenCV는 BGR 사용)
-    #         # 만약 색상이 이상하게 보이면 아래 줄을 주석 해제하세요.
-    #         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-
-    #         # 4. 상하 반전 (OpenGL 좌표계 대응)
-    #         flipped = cv2.flip(frame, 0)
-    #         self.latest_image = flipped
-
-    #     except Exception as e:
-    #         print(f"[System] Raw 디코딩 실패: {e}")
-
     def _decode_and_update(self, data_bytes):
-        """
-        수신된 바이트 데이터를 JPEG로 해석하여 OpenCV 이미지로 변환
-        """
-        try:
-            # 1. 바이트 데이터를 numpy 배열(uint8 1D array)로 변환
-            # (이 단계에서는 아직 이미지가 아니고 단순 바이트 배열임)
-            input_array = np.frombuffer(data_bytes, dtype=np.uint8)
+        nparr = np.frombuffer(data_bytes, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-            # 2. cv2.imdecode를 사용하여 JPEG 압축 해제
-            # cv2.IMREAD_COLOR: BGR 컬러 이미지로 로드 (투명도 무시)
-            # cv2.IMREAD_UNCHANGED: 투명도(Alpha)가 필요하면 이것 사용
-            frame = cv2.imdecode(input_array, cv2.IMREAD_COLOR)
-
-            if frame is None:
-                # 데이터가 손상되었거나 JPEG 형식이 아닐 경우
-                # print("[System] 디코딩 실패 (Frame is None)")
-                return
-
-            # 3. 상하 반전 (OpenGL 좌표계 대응)
-            # C++에서 TJFLAG_BOTTOMUP을 썼다면 이 과정이 필요 없을 수도 있음.
-            # 화면이 거꾸로 보이면 아래 줄을 주석 처리하세요.
+        if frame is not None:
+            # OpenGL 좌표계 대응 상하반전
             flipped = cv2.flip(frame, 0)
-            
-            # 4. Traitlets 변수 업데이트 (UI 등 다른 모듈에서 감지)
             self.latest_image = flipped
-
-        except Exception as e:
-            print(f"[System] 디코딩 중 예외 발생: {e}")
+        else:
+            print("[System] 이미지 디코딩 실패")
 
     # ==========================================================
     # [5] 명령 전송 (Thread-Safe)
     # ==========================================================
     def send_command(self, cmd_dict):
         msg = json.dumps(cmd_dict)
-        
-        # [수정] 공통 패킷 생성 (헤더 + 데이터)
-        data_bytes = msg.encode('utf-8')
-        header = struct.pack('<L', len(data_bytes))
-        payload = header + data_bytes  # 4바이트 길이 정보 + 실제 JSON 데이터
-
-        # 1. WebSocket 전송 (수정됨)
+        # 1. WebSocket 우선 전송
         if self.active_ws and self.loop:
+            payload = msg.encode('utf-8')
+            header = struct.pack('<I', len(payload))
+            packet = header + payload
             asyncio.run_coroutine_threadsafe(
-                # 문자열 msg 대신 바이너리 payload를 전송해야 함
-                self.active_ws.send(payload), self.loop
+                self.active_ws.send(packet), self.loop
             )
 
-        # 2. TCP 전송 (기존 로직 유지하되 payload 변수 활용 가능)
+        # 2. TCP 전송 (헤더 포함)
         elif self.active_tcp_writer and self.loop:
-            # 기존 코드:
-            # data_bytes = msg.encode('utf-8')
-            # header = struct.pack('<L', len(data_bytes))
-            
+            data_bytes = msg.encode('utf-8')
+            header = struct.pack('<L', len(data_bytes))
+
             def tcp_send():
                 if self.active_tcp_writer and not self.active_tcp_writer.is_closing():
-                    self.active_tcp_writer.write(payload) # 위에서 만든 payload 사용
+                    self.active_tcp_writer.write(header + data_bytes)
 
             self.loop.call_soon_threadsafe(tcp_send)
 
@@ -294,6 +232,7 @@ class SimulatorServer(SingletonConfigurable):
             "left": self.motor_states[1],
             "right": self.motor_states[2]
         }
+        
         self.send_command(payload)
 
     def update_servo_value(self, servo_id, angle, speed):
@@ -309,6 +248,7 @@ class SimulatorServer(SingletonConfigurable):
             "angle": float(angle),
             "speed": float(speed)
         }
+        print(f"[Send Servo] ID: {servo_id}, Angle: {angle}, Speed: {speed}")
         self.send_command(payload)
 
 
