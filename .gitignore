@@ -15,3 +15,5 @@ runs/
 
 # 특정 zip 파일 무시 (모든 zip을 무시하려면 *.zip)
 license_plate.v2i.yolov8.zip
+
+raw_images/
