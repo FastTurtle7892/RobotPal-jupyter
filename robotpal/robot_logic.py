@@ -28,7 +28,6 @@ class DrivingController:
             # 2. [핵심 수정] 시퀀스 수행 중(카메라 회전 등)일 때 처리
             if self.state == "SEQUENCE":
                 # 카메라가 돌아가 있는 동안 모델이 조향을 계산하지 못하도록 즉시 차단
-                # 로봇이 관성에 의해 밀리지 않게 정지 명령을 유지합니다.
                 cfg.robot.left_motor.value = 0.0
                 cfg.robot.right_motor.value = 0.0
                 return
@@ -50,7 +49,7 @@ class DrivingController:
                     return
 
             # 5. --- 일반 주행 (ResNet) ---
-            # state가 "DRIVING"이고 카메라가 정면일 때만 이 코드가 실행됩니다.
+            # state가 "DRIVING"이고 카메라가 정면일 때만 실행
             self.drive_step(image)
             
         except Exception as e:
@@ -64,10 +63,9 @@ class DrivingController:
             cfg.robot.stop()
             
             # 1. 카메라 오른쪽으로 20만큼 돌리기 (서보 ID 1 사용 가정)
-            # 현재 각도를 읽어와서 +20을 하거나 절대 각도를 지정하세요.
             cfg.log_print("카메라 회전 중 (오른쪽 20)")
-            cfg.set_servo(1, 20.0) # 예시 각도
-            time.sleep(0.8) # 물리적 이동 시간 대기
+            cfg.set_servo(1, 20.0)
+            time.sleep(0.8) 
             
             # 2. OCR 요청 및 대기
             cfg.log_print("OCR 수행 중...")
@@ -80,7 +78,7 @@ class DrivingController:
             
             # 3. 로그창에 OCR 값 출력
             ocr_val = self.vision.detection_result["text"]
-            cfg.log_print(f"✅ OCR 인식 결과: [{ocr_val}]")
+            cfg.log_print(f"OCR 인식 결과: [{ocr_val}]")
             
             # 4. 카메라 다시 왼쪽으로 20 돌려 복귀
             cfg.log_print("카메라 복귀 중...")
@@ -88,7 +86,7 @@ class DrivingController:
             time.sleep(0.8)
             
             # 5. 주행 재개 설정
-            self.ignore_until = time.time() + 1.5 # 다시 인식되지 않도록 3초 쿨다운
+            self.ignore_until = time.time() + 3.0 # 다시 인식되지 않도록 3초 쿨다운
             self.state = "DRIVING"
             cfg.log_print("▶️ 주행을 재개합니다.")
             

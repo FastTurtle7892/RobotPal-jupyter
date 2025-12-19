@@ -82,12 +82,13 @@ class VisionSystem:
             self.detection_thread.join()
 
     def _detection_worker(self):
+        
         log_print(">>> 감지 스레드 시작됨")
-        while not self.stop_thread:
+        while not self.stop_thread:     # self.stop_thread가 True가 되기 전까지 무한 반복
             img_input = None
-            with self.latest_image_lock:
+            with self.latest_image_lock:    # 메인 스레드와 공유하는 이미지 자원에 접근하기 위해서 Lock
                 if self.shared_latest_image is not None:
-                    img_input = self.shared_latest_image.copy()
+                    img_input = self.shared_latest_image.copy() # 메인스레드의 최신 이미지가 있다면 복사본 생성
             
             if img_input is None:
                 time.sleep(0.01)
@@ -97,12 +98,13 @@ class VisionSystem:
                 results = self.model_yolo(img_input, verbose=False, conf=0.1, imgsz=800) 
                 found = False
                 for result in results:
-                    if result.obb is None or len(result.obb) == 0: continue
+                    if result.obb is None or len(result.obb) == 0: continue # 감지된 객체가 없으면 다음 결과로
 
                     for obb in result.obb:
                         raw_points = obb.xyxyxyxy.cpu().numpy()[0].astype(np.float32)
                         ordered_points = self.order_points(raw_points)
                         
+                        # 4개의 점을 [좌상, 우상, 우하, 좌하] 순서로 정렬
                         x1, y1 = int(np.min(ordered_points[:, 0])), int(np.min(ordered_points[:, 1]))
                         x2, y2 = int(np.max(ordered_points[:, 0])), int(np.max(ordered_points[:, 1]))
                         
