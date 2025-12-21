@@ -22,6 +22,8 @@ class SimulatorServer(SingletonConfigurable):
 
     # [Output 1] AI용: 224x224 리사이징된 Numpy (가벼움)
     latest_image = traitlets.Any(allow_none=True)
+
+    latest_image_high = traitlets.Any(allow_none=True)
     
     # [Output 2] 화면용: 원본 JPEG 바이너리 (빠름)
     latest_jpeg = traitlets.Bytes(allow_none=True)
@@ -156,20 +158,6 @@ class SimulatorServer(SingletonConfigurable):
     # [4] 공통 로직: 디코딩 & 리사이즈 (CPU Bound)
     # ==========================================================
     # ==========================================================
-    def _decode_and_resize(self, data_bytes):
-        """AI를 위해 224x224로 리사이즈"""
-        try:
-            nparr = np.frombuffer(data_bytes, np.uint8)
-            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-            if frame is not None:
-                # 1. 상하반전
-                flipped = cv2.flip(frame, 0)
-                # 2. 리사이즈 (JetBot 하드웨어 흉내)
-                return cv2.resize(flipped, (224, 224), interpolation=cv2.INTER_LINEAR)
-        except: pass
-        return None
-        # ==========================================================
     # def _decode_and_resize(self, data_bytes):
     #     """AI를 위해 224x224로 리사이즈"""
     #     try:
@@ -180,9 +168,42 @@ class SimulatorServer(SingletonConfigurable):
     #             # 1. 상하반전
     #             flipped = cv2.flip(frame, 0)
     #             # 2. 리사이즈 (JetBot 하드웨어 흉내)
-    #             return flipped
+    #             return cv2.resize(flipped, (224, 224), interpolation=cv2.INTER_LINEAR)
     #     except: pass
     #     return None
+    def _decode_and_resize(self, data_bytes):
+        """AI를 위해 224x224로 리사이즈하되, OCR용 고화질도 저장"""
+        try:
+            nparr = np.frombuffer(data_bytes, np.uint8)
+            # 1. 일단 원본 크기대로 디코딩 (여기서는 640x480 등 고화질 상태)
+            full_frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            if full_frame is not None:
+                # 2. 상하반전 (고화질 상태에서 뒤집기)
+                flipped_full = cv2.flip(full_frame, 0)
+                
+                # [핵심 수정] 리사이즈 하기 전에 고화질 원본을 따로 멤버 변수에 저장!
+                # 이 변수를 나중에 OCR 할 때 갖다 쓰면 됩니다.
+                self.latest_image_high = flipped_full 
+                
+                # 3. 리사이즈 (AI 모델용 224x224)
+                resized_frame = cv2.resize(flipped_full, (224, 224), interpolation=cv2.INTER_LINEAR)
+                
+                return resized_frame # 주행용으로 리턴
+                
+        except: pass
+        return None
+    
+    @property
+    def value(self):
+        # 기존: 주행용 저화질 리턴
+        return self.latest_image
+
+    @property
+    def value_high(self):
+        # [신규] OCR용 고화질 리턴
+        return self.latest_image_high
+
 
     # ==========================================================
     # [5] 명령 전송

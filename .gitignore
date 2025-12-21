@@ -17,3 +17,8 @@ runs/
 license_plate.v2i.yolov8.zip
 
 raw_images/
+
+ocr_test/
+.env
+.idea
+
