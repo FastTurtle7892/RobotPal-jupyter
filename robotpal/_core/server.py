@@ -155,6 +155,7 @@ class SimulatorServer(SingletonConfigurable):
     # ==========================================================
     # [4] 공통 로직: 디코딩 & 리사이즈 (CPU Bound)
     # ==========================================================
+    # ==========================================================
     def _decode_and_resize(self, data_bytes):
         """AI를 위해 224x224로 리사이즈"""
         try:
@@ -168,6 +169,20 @@ class SimulatorServer(SingletonConfigurable):
                 return cv2.resize(flipped, (224, 224), interpolation=cv2.INTER_LINEAR)
         except: pass
         return None
+        # ==========================================================
+    # def _decode_and_resize(self, data_bytes):
+    #     """AI를 위해 224x224로 리사이즈"""
+    #     try:
+    #         nparr = np.frombuffer(data_bytes, np.uint8)
+    #         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+    #         if frame is not None:
+    #             # 1. 상하반전
+    #             flipped = cv2.flip(frame, 0)
+    #             # 2. 리사이즈 (JetBot 하드웨어 흉내)
+    #             return flipped
+    #     except: pass
+    #     return None
 
     # ==========================================================
     # [5] 명령 전송
