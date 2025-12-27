@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['box']
+
+roboflow:
+  workspace: ssafy-ib7mc
+  project: box-ipx2p
+  version: 3
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/ssafy-ib7mc/box-ipx2p/dataset/3
