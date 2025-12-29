@@ -1,55 +1,81 @@
-# 🤖 RobotPal
+# 🤖 RobotPal Jupyter
 
-![RobotPal Demo](./.github/assets/demo.webp)
-
-[![Emscripten Build](https://github.com/fastturtle7892/robotpal/actions/workflows/emscripten-build.yml/badge.svg)](https://github.com/fastturtle7892/robotpal/actions/workflows/emscripten-build.yml)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-
-**RobotPal**은 웹(WebAssembly)과 데스크톱 환경 모두에서 동작하는 고성능 로봇 시뮬레이션 및 제어 프레임워크입니다. C++로 작성된 코어 엔진을 기반으로 하며, Python 바인딩을 통해 로봇 제어 알고리즘과 인공지능(AI) 모델을 손쉽게 테스트할 수 있습니다.
-
-🔗 **[Live Web Demo 보기](https://fastturtle7892.github.io/robotpal/)**
-> *웹 브라우저에서 별도의 설치 없이 시뮬레이션을 바로 실행해보세요!*
+**RobotPal Jupyter**는 Jetson Nano 기반의 AI 로봇(JetTank 등)을 제어하고 다양한 인공지능 비전 프로젝트를 실습할 수 있는 라이브러리 및 예제 코드 저장소입니다. Jupyter Notebook 환경에서 로봇의 모터 제어, 카메라 영상 스트리밍, 딥러닝 모델 학습 및 자율 주행 실습을 단계별로 진행할 수 있습니다.
 
 ---
 
-## ✨ 주요 기능 (Key Features)
+## 📂 폴더 구조
 
-* **🌐 크로스 플랫폼 지원 (Cross-Platform)**
-    * **WebAssembly (WASM)**: Emscripten을 통해 웹 브라우저에서 네이티브에 준하는 성능으로 실행됩니다.
-    * **Desktop (Native)**: Windows, Linux, macOS 환경에서 고성능 시뮬레이션이 가능합니다.
-* **🎨 사실적인 렌더링 (Realistic Rendering)**
-    * OpenGL/WebGL 기반의 PBR (Physically Based Rendering) 적용
-    * HDR Skybox 및 IBL (Image Based Lighting) 지원
-    * 실시간 그림자 및 조명 효과
-* **🐍 Python API 및 Jupyter 연동**
-    * `RobotPal-python` 모듈을 통해 파이썬으로 로봇을 제어할 수 있습니다.
-    * Jupyter Notebook 환경에서 카메라 피드를 받아와 YOLO, 라인 트레이싱 등 컴퓨터 비전(CV) 알고리즘을 실시간으로 실습할 수 있습니다.
-* **🏎️ 시뮬레이션 및 실물 제어**
-    * 가상 환경(SimController)과 실제 로봇(RealController)을 동일한 API로 제어하는 하이브리드 아키텍처를 지원합니다.
+이 저장소는 다음과 같은 주요 디렉토리로 구성되어 있습니다.
 
-## 📂 프로젝트 구조 (Project Structure)
+- **`robotpal/`**: 로봇 제어를 위한 핵심 Python 라이브러리입니다.
+  - 모터 및 서보 제어 (`motor.py`, `SCSCtrl/`)
+  - 카메라 영상 스트리밍 및 서버 통신 (`camera/`, `_core/server.py`)
+  - 로봇 기본 동작 정의 (`robot.py`)
+- **`vision/`**: 다양한 AI 비전 인식 엔진을 통합한 패키지입니다.
+  - 객체 감지 및 문자 인식 (Detector, OCR)
+  - 지원 엔진: Clova Vision API, PaddleOCR 등 (`engines/`)
+- **`exmape_code/`**: 단계별 실습을 위한 Jupyter Notebook 예제 코드들이 포함되어 있습니다. (PJT07 ~ PJT12)
+- **`data/`**: 실습에 사용되는 데이터셋, 학습된 모델 파일, 데모 이미지 등이 저장됩니다.
 
-* `RobotPal/`: C++ 코어 엔진 소스 코드 (렌더링, 시스템, 로직)
-* `RobotPal-python/`: 로봇 제어를 위한 Python 바인딩 및 라이브러리
-* `RobotPal-web/`: 웹 빌드를 위한 리소스 및 템플릿 (Service Worker 포함)
-* `robotpal-jupyter/`: AI 모델 학습 및 제어 예제 노트북 (YOLO, Line Following 등)
-* `.github/workflows/`: GitHub Actions 빌드 및 배포 자동화 스크립트
+---
 
-## 🚀 시작하기 (Getting Started)
+## 🚀 주요 기능
 
-### 웹 빌드 (Web Build)
-이 프로젝트는 **Emscripten**을 사용하여 웹용으로 빌드됩니다.
+1.  **하드웨어 제어**
+    - DC 모터 및 서보 모터의 정밀한 제어
+    - 게임패드(조이스틱)를 이용한 수동 조작 지원
+2.  **AI 비전 및 영상 처리**
+    - 실시간 카메라 영상 스트리밍 (Websocket 기반)
+    - 색상 인식 및 추적 (Color Tracking)
+    - 도로 주행(Road Following)을 위한 데이터 수집 및 자율 주행 모델 학습
+    - 작업 영역 검사 및 객체 인식 (Inspection & Object Detection)
+3.  **확장 가능한 아키텍처**
+    - 다양한 비전 엔진(Clova, Paddle 등)을 플러그인 형태로 사용 가능
+    - 시뮬레이터 및 실제 로봇 환경 지원
 
-```bash
-# 1. 빌드 디렉토리 생성
-mkdir build-web && cd build-web
+---
 
-# 2. Emscripten CMake 설정
-emcmake cmake .. -G Ninja
+## 📚 학습 커리큘럼 (Example Code)
 
-# 3. 빌드 실행
-ninja
+`exmape_code` 폴더 내의 노트북 파일을 통해 다음 내용을 순서대로 학습할 수 있습니다.
 
-# 4. 로컬 테스트 (보안 헤더 설정 필요)
-# coi-serviceworker가 적용된 index.html을 실행해야 합니다.
-python run_server.py
+### 1. 기본 동작 및 제어 (PJT07)
+- **[5-1] basicmotion**: 로봇의 전후좌우 기본 이동 제어
+- **[5-2] JETANK_1_servos**: 카메라 짐벌 등 서보 모터 제어
+- **[5-4] motionDetect**: 카메라를 이용한 움직임 감지
+- **[5-5] ~ [5-6]**: 색상 인식 및 특정 색상 추적하기
+- **[5-7] gamepadCtrl**: 게임패드를 이용한 로봇 원격 조종
+
+### 2. 자율 주행 실습 (PJT09)
+- **DataCollection**: 도로 주행 데이터 수집
+- **Train Model**: 수집된 데이터를 바탕으로 자율 주행 모델 학습
+- **RoadFollowingFeedback**: 학습된 모델을 적용하여 라인 트레이싱(Road Following) 구현
+
+### 3. 비전 검사 및 응용 (PJT11 ~ PJT12)
+- **Camera 세부 동작**: 카메라 설정 및 이미지 캡처 테스트
+- **Working Area Inspection**: 특정 영역의 상태를 검사하고 판단하는 로직 구현
+- **RoadFollowing + WorkingArea**: 자율 주행과 작업 영역 인식을 결합한 종합 프로젝트
+
+---
+
+## 🛠 설치 및 시작하기
+
+1.  이 저장소를 Jetson Nano 또는 실습 환경에 클론합니다.
+    ```bash
+    git clone [https://github.com/fastturtle7892/robotpal-jupyter.git](https://github.com/fastturtle7892/robotpal-jupyter.git)
+    cd robotpal-jupyter
+    ```
+
+2.  Jupyter Notebook을 실행하여 `exmape_code` 폴더의 노트북을 엽니다.
+    ```bash
+    jupyter notebook
+    ```
+
+3.  필요한 Python 라이브러리가 설치되어 있는지 확인하세요. (주요 의존성: `opencv-python`, `numpy`, `websockets`, `torch` 또는 `tensorflow` 등 AI 프레임워크)
+
+---
+
+## 📝 라이선스
+
+이 프로젝트는 오픈 소스 라이선스를 따릅니다. 자세한 내용은 라이선스 파일을 참고하세요.
